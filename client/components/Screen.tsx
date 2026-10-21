@@ -14,12 +14,17 @@ import {
 import { withUniwind } from 'uniwind';
 import { useSafeAreaInsets, Edge } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-// 引入 KeyboardAware 系列组件
+// 引入 KeyboardAware 系列组件（库自带的 ViewProps 类型在部分 RN 版本下解析不全，此处用 any 包裹取类型安全）
 import {
-  KeyboardAwareScrollView,
-  KeyboardAwareFlatList,
-  KeyboardAwareSectionList
+  KeyboardAwareScrollView as _KeyboardAwareScrollView,
+  KeyboardAwareFlatList as _KeyboardAwareFlatList,
+  KeyboardAwareSectionList as _KeyboardAwareSectionList,
 } from 'react-native-keyboard-aware-scroll-view';
+
+// 运行时保留 KeyboardAware 行为，仅绕过其过严的 props 泛型推导
+const KeyboardAwareScrollView = _KeyboardAwareScrollView as any;
+const KeyboardAwareFlatList = _KeyboardAwareFlatList as any;
+const KeyboardAwareSectionList = _KeyboardAwareSectionList as any;
 
 /**
  * # Screen 组件使用指南

@@ -25,61 +25,61 @@
   :root {
     @variant light {
       /* Base Colors */
-      --background: #fafafa;
-      --foreground: var(--eclipse);
+      --background: #F6F4EF;      /* 暖米白背景 */
+      --foreground: #20261F;      /* 深墨绿文字 */
 
       /* Surface: Used for non-overlay components (cards, accordions, disclosure groups) */
-      --surface: var(--white);
+      --surface: #FFFFFF;
       --surface-foreground: var(--foreground);
 
       /* Overlay: Used for floating/overlay components (dialogs, popovers, modals, menus) */
-      --overlay: var(--white);
+      --overlay: #FFFFFF;
       --overlay-foreground: var(--foreground);
 
-      --muted: oklch(0.5517 0.0138 285.94);
+      --muted: #6B7268;
 
-      --default: oklch(94% 0.001 286.375);
-      --default-foreground: var(--eclipse);
+      --default: #E4EEEA;         /* primary-soft */
+      --default-foreground: #20261F;
 
-      --accent: oklch(0.6204 0.195 253.83);
-      --accent-foreground: var(--snow);
+      --accent: #2F6E63;          /* 深青绿 primary */
+      --accent-foreground: #FFFFFF;
 
       /* Form Fields */
-      --field-background: var(--white);
-      --field-foreground: oklch(0.2103 0.0059 285.89);
+      --field-background: #FFFFFF;
+      --field-foreground: #20261F;
       --field-placeholder: var(--muted);
       --field-border: transparent; /* no border by default on form fields */
 
       /* Status Colors */
-      --success: oklch(0.7329 0.1935 150.81);
-      --success-foreground: var(--eclipse);
+      --success: #3E8C6A;
+      --success-foreground: #FFFFFF;
 
-      --warning: oklch(0.7819 0.1585 72.33);
-      --warning-foreground: var(--eclipse);
+      --warning: #C8823A;
+      --warning-foreground: #FFFFFF;
 
-      --danger: oklch(0.6532 0.2328 25.74);
-      --danger-foreground: var(--snow);
+      --danger: #C2684F;
+      --danger-foreground: #FFFFFF;
 
       /* Component Colors */
       --segment: var(--white);
-      --segment-foreground: var(--eclipse);
+      --segment-foreground: var(--foreground);
 
       /* Misc Colors */
-      --border: oklch(90% 0.004 286.32);
-      --separator: oklch(74% 0.004 286.32);
+      --border: #E7E3DA;
+      --separator: #E7E3DA;
       --focus: var(--accent);
       --link: var(--foreground);
 
       /* Shadows */
       --surface-shadow:
-        0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06),
-        0 0 1px 0 rgba(0, 0, 0, 0.06);
+        0 2px 4px 0 rgba(47, 110, 99, 0.05), 0 1px 2px 0 rgba(47, 110, 99, 0.06),
+        0 0 1px 0 rgba(47, 110, 99, 0.04);
       --overlay-shadow:
-        0 2px 8px 0 rgba(0, 0, 0, 0.04), 0 -6px 12px 0 rgba(0, 0, 0, 0.02),
-        0 14px 28px 0 rgba(0, 0, 0, 0.06);
+        0 2px 8px 0 rgba(32, 38, 31, 0.06), 0 -6px 12px 0 rgba(32, 38, 31, 0.02),
+        0 14px 28px 0 rgba(32, 38, 31, 0.08);
       --field-shadow:
-        0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06),
-        0 0 1px 0 rgba(0, 0, 0, 0.06);
+        0 2px 4px 0 rgba(32, 38, 31, 0.04), 0 1px 2px 0 rgba(32, 38, 31, 0.05),
+        0 0 1px 0 rgba(32, 38, 31, 0.04);
     }
 
     @variant dark {

@@ -1,261 +1,80 @@
-# Expo App + Express.js
+# 日拱（Habit AI）
 
-## 目录结构规范（严格遵循）
+一款 **Android 优先、本地优先（local-first）、无账号无云后端** 的个人习惯设计 App，把大目标拆成 5–30 分钟、能立即开始的小动作，并通过打卡、环境设计、每日复盘、记账（个人三张表）、不为清单与 AI 定期梳理/审计/激励，缓解焦虑、对齐长期方向、增强元认知。
 
-当前仓库是一个 monorepo（基于 pnpm 的 workspace）
+## 技术栈
 
-- Expo 代码在 client 目录，Express.js 代码在 server 目录
-- 本模板默认无 Tab Bar，可按需改造
+- 前端：Expo 54 + React Native + TypeScript（Expo Router，5-Tab 底部导航）
+- 本地持久化：AsyncStorage 封装的 Repository 层（`client/lib/db.ts`，数据模型集中在 `client/lib/models.ts`，便于未来迁移云同步）
+- 本地通知：`expo-notifications`（Android 通知渠道、定时/重复提醒、通知权限请求与引导去系统设置）
+- Markdown 导出：`expo-file-system` + `expo-sharing`，增量追加写入 `life_log.md`
+- AI（可选）：OpenAI 兼容 HTTP 接口，`base_url / api_key / model` 存储在本地安全存储 `expo-secure-store`；无 Key 或离线时自动使用**纯本地模板化降级**，不阻塞功能
+- 主题：深青绿 + 暖琥珀、暖米白背景、圆角卡片（见 `client/theme.ts` 与 `client/global.css`）
 
-├── client/                     # React Native 前端代码
-│   ├── app/                    # Expo Router 路由目录（仅路由配置）
-│   │   ├── _layout.tsx         # 根布局文件（必需，务必阅读）
-│   │   └── index.tsx           # 首页
-│   ├── screens/                # 页面实现目录（与 app/ 路由对应）
-│   │   └── demo/               # 示例页面
-│   │       └── index.tsx
-│   ├── components/             # 可复用组件
-│   │   └── Screen.tsx          # 页面容器组件（必用）
-│   ├── hooks/                  # 自定义 Hooks
-│   ├── contexts/               # React Context 代码
-│   ├── utils/                  # 工具函数
-│   ├── assets/                 # 静态资源
-|   └── package.json            # Expo 应用 package.json
-├── server/                     # 服务端代码根目录 (Express.js)
-|   ├── src/
-│   │   └── index.ts            # 服务端入口文件
-|   └── package.json            # 服务端 package.json
-├── package.json
-├── .cozeproj                   # 预置脚手架脚本（禁止修改）
-└── .coze                       # 配置文件（禁止修改）
-
-## 样式方案
-
-基于 tailwindcss 进行样式开发（底层基于 Uniwind）
-
-写法示例：
-
-```tsx
-<View className="flex-1 bg-white dark:bg-gray-900 p-4"></View>
-```
-
-```tsx
-<Text
-  className="text-lg font-bold text-gray-900 dark:text-white"
-  selectionColorClassName="accent-blue-500"
->
-  Hello World
-</Text>
-```
-
-Uniwind 官方文档：https://docs.uniwind.dev/llms.txt
-
-## 如何进行静态校验（TSC + ESLint）
+## 快速开始
 
 ```bash
-# 对 client 和 server 目录同时进行校验
-pnpm -w lint:all
-
-# 对 client 目录进行校验
-pnpm -w lint:client
-
-# 对 server 目录进行校验
-pnpm -w lint:server
+cd /workspace/projects/client
+npm install        # 或 pnpm install
+npx expo start
+# 按 a 打开 Android 模拟器，或 m 扫码用 Expo Go；Web: npx expo start --web
 ```
 
-## 如何修改主题模式（跟随系统、固定暗色、固定亮色）
+> 说明：本应用**完全本地**，无需启动后端服务器即可使用全部功能（模板自带的最小 Express 服务仅作环境健康检查）。本地数据保存在设备 AsyncStorage，清除应用数据即重置。
 
-默认为跟随系统，如果用户明确指定为“暗色”或“亮色”，需要修改 `client/components/ColorSchemeUpdater.tsx` 的 `DEFAULT_THEME` 变量为合适的值
+## 页面结构（底部 5 Tab）
 
-## 如何定制主题 design tokens
+| Tab | 名称 | 内容 |
+|-----|------|------|
+| 今日 | Today | 问候与今晚可用时长、连续/已完成/方向对齐概览、焦虑急救入口、今晚时段条（轻量/深度/复盘）、5–30 分钟子任务（领域标签/时长/关联目标/圆形打卡）、今晚「不为」提醒、右下 FAB 新建任务 |
+| 目标 | Goals | 目标金字塔（愿景→年度→季度→周→今日）层级展示、进度、方向对齐率、添加/编辑下级目标 |
+| 习惯 | Habits | 习惯五要素（触发锚点/最小行动/环境预置/降级版本/连续天数）、完整或降级打卡、断链不追责 |
+| 记录 | Journal | 每日复盘+感受（做成/没做到客观原因/情绪标签+1–10+感受文本/明天最小行动）、不为清单轮换提醒、AI 周报入口、焦虑急救记录 |
+| 我的 | Profile | 记账（个人三张表：资产负债表/收支表/现金流量表）、时间方案、通知、AI 配置、Markdown 导出、隐私说明 |
 
-当前项目的**设计系统**基于 tailwindcss 实现，核心入口文件为 `client/global.css`，如果需要定制主题，应该**阅读并修改 `client/global.css` 文件**
+Stack 页（从各 Tab 进入）：任务录入+AI 拆解、焦虑急救四步、记账+三张表、不为清单管理、AI 周报、时间方案、通知、LLM 配置、导出。
 
-## 路由及 Tab Bar 实现规范
+## 配置说明
 
-### 方案一：无 Tab Bar（Stack 导航）
+### 1. 配置 AI（LLM）
 
-适用于线性流程应用，采用简化的目录结构：
+进入「我的 → AI 配置」，填写：
+- **Base URL**：如 `https://api.openai.com/v1` 或任意 OpenAI 兼容服务的基地址
+- **API Key**：你的密钥（保存于系统安全存储）
+- **Model**：如 `gpt-4o-mini` / `deepseek-chat` / `kimi` 等
 
+用于：任务 AI 拆解、焦虑急救的苏格拉底式追问重构、AI 周报（梳理/审计/激励）。
+**未配置或无网络时**：任务拆解、焦虑急救自动走「本地模板化降级」，仍可正常使用，不会阻断流程。
+
+### 2. 打开通知权限
+
+- 首次启动会自动向你请求通知权限。
+- 若未授权：进入「我的 → 通知」，点击「打开系统设置」跳转到系统通知设置，为「日拱」开启通知并允许提醒（Notifications / Alerts）。
+- 六类通知开关（任务派发、时段开始、复盘、习惯、记账、周报）、声音/震动、静默勿扰均可单独配置；可「发一条测试通知」验证，并设置工作日 18:30 / 周末 09:30 / 复盘 22:00 等提醒时间。
+- Android 通知渠道随应用启动自动建立（`daily` 默认渠道）。
+
+### 3. 导出 Markdown（life_log.md）
+
+进入「我的 → 导出」：
+- **立即导出**：把目标金字塔、每日任务/复盘/感受、记账（含三张表汇总）、习惯、不为清单、焦虑急救记录、AI 分析**增量追加**写入 `life_log.md`（不覆盖历史），并通过系统分享面板导出/分享到文件、网盘等。
+- **自动导出频率**：可选关闭 / 每天 / 每周（导出文件保存在应用文档目录）。
+- 导出的频率提醒与周报提醒共用通知开关「周报」。
+
+## 数据模型（集中管理）
+
+`Goal` / `Task`（主任务可 `parentId` 关联子任务，`type` 分 light/deep）/ `Habit` / `StopRule`（只修订归档不物理删除，含版本历史）/ `Journal` / `AnxietyCheckIn` / `Transaction`（income/expense/transfer）/ `TimeSlot`（工作日/周末双轨、逐星期几微调、light/deep/review、开关）/ `AppSettings` / `AiConfig`。
+
+## 范围边界（V1.0）
+
+- 仅本地 Android 优先；无账号、无社交、无云同步后端。
+- 记账为本地个人记录，非真实支付。
+- 焦虑急救为自助心理工具，**非医疗建议**；严重情况请寻求专业帮助。
+- 应用锁与自动云备份列入 V1.1 占位。
+
+## 设计主题
+
+固定亮色、暖米白背景（`#F6F4EF`）。
+- Primary `#2F6E63`、Accent `#C8823A`、完成 `#3E8C6A`、警示 `#C2684F`、信息 `#5B7FA6`
+- 领域色：运动 `#3E8C6A`、开发 `#3E6FA8`、学习 `#8A6BB1`、工作 `#B0823E`、其他 `#7C8579`
+- 卡片圆角 16、控件 12、胶囊 999；正文 15；系统字体；已适配 Android 安全区 inset。
 ```
-client/app/
-├── _layout.tsx         # 根布局（Stack 导航配置）
-├── index.tsx           # 应用入口
-├── detail.tsx          # 详情页（通过 params 传递数据）
-└── +not-found.tsx      # 404 页面
-```
-
-**根布局配置** `client/app/_layout.tsx`：
-
-以下仅为代码片段供写法参考
-
-```tsx
-<Stack screenOptions={{ headerShown: false }}>
-  <Stack.Screen name="index" />
-  <Stack.Screen name="detail" />
-</Stack>
-```
-
-**应用入口** `client/app/index.tsx`：
-```tsx
-export { default } from "@/screens/home";
-```
-> **禁止事项**：无 Tab Bar 场景下，不得创建 `(tabs)` 目录。
-
-### 方案二：有 Tab Bar（Tabs 导航）
-
-采用路由分组实现底部导航栏：
-```
-client/app/
-├── _layout.tsx              # 根布局
-├── (tabs)/
-│   ├── _layout.tsx          # Tab 导航配置
-│   ├── index.tsx            # 默认 Tab（必须存在）
-│   ├── discover.tsx         # 发现页
-│   └── profile.tsx          # 个人中心
-├── detail.tsx               # Tab 外的独立页面（通过 params 传递数据）
-└── +not-found.tsx
-```
-> **⚠️ [CRITICAL]**： `app/index.tsx` 优先级高于 `(tabs)/index.tsx`，会导致首页无 Tab Bar。**当有(tabs)/index.tsx时必须删除 `app/index.tsx`**。
-
-**根布局配置** `client/app/_layout.tsx`：
-
-以下仅为代码片段供写法参考
-
-```tsx
-<Stack screenOptions={{ headerShown: false }}>
-  <Stack.Screen name="(tabs)" />
-  <Stack.Screen name="detail" />
-</Stack>
-```
-
-**应用入口** `client/app/(tabs)/index.tsx`：
-```tsx
-export { default } from "@/screens/home";
-```
-
-**Tab 布局配置** `client/app/(tabs)/_layout.tsx`：
-
-```tsx
-import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FontAwesome6 } from '@expo/vector-icons';
-import { useCSSVariable } from 'uniwind';
-
-export default function TabLayout() {
-  const insets = useSafeAreaInsets();
-  const [background, muted, accent, border] = useCSSVariable([
-    '--color-background',
-    '--color-muted',
-    '--color-accent',
-    '--color-border',
-  ]) as string[];
-
-  let tabBarStyle = {
-    backgroundColor: background,
-    borderTopWidth: 1,
-    borderTopColor: border,
-  };
-
-  // 用于修复 Web 上高度异常的问题（这个 if 逻辑必须添加）
-  if (Platform.OS === 'web') {
-    tabBarStyle = {
-      ...tabBarStyle,
-      height: 'auto',
-    }
-  }
-
-  return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle,
-        tabBarActiveTintColor: accent,
-        tabBarInactiveTintColor: muted,
-      }}
-    >
-      {/* name 必须与文件名完全一致 */}
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: '首页',
-          tabBarIcon: ({ color }) => (
-            <FontAwesome6 name="house" size={20} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="discover"
-        options={{
-          title: '发现',
-          tabBarIcon: ({ color }) => (
-            <FontAwesome6 name="compass" size={20} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: '我的',
-          tabBarIcon: ({ color }) => (
-            <FontAwesome6 name="user" size={20} color={color} />
-          ),
-        }}
-      />
-    </Tabs>
-  );
-}
-```
-
-**Tab 页面文件** `client/app/(tabs)/index.tsx`：
-```tsx
-export { default } from "@/screens/home";
-```
-
-### 注意事项
-
-在改动 `client/app/_layout.tsx` 前，必须先阅读该文件，再进行修改操作
-
-以下是需要保留的重要逻辑
-
-- 保留 global.css 引入（tailwindcss 生效的关键）
-- 保留 Provider 的使用
-
-## 依赖管理与模块导入规范
-
-### 依赖安装
-**禁止**使用 `npm` 或 `yarn`，按目录区分安装命令：
-
-| 目录 | 安装命令 | 说明 |
-|------|----------|------|
-| `client/` | `npx expo install <package>` | Expo 会自动选择与 SDK 兼容的版本 |
-| `server/` | `pnpm add <package>` | 使用 pnpm 管理后端依赖 |
-
-```bash
-# client 目录（Expo 项目）
-cd client && npx expo install expo-camera expo-image-picker
-
-# server 目录（Express 项目）
-cd server && pnpm add axios cors
-```
-
-**网络问题处理**：`npx expo install` 可能因网络原因失败，失败时重试 2 次，仍失败则改用 `pnpm add` 安装
-
-## Expo 开发规范
-
-### 路径别名
-
-Expo 配置了 `@/` 路径别名指向 `client/` 目录：
-
-```tsx
-// 正确
-import { Screen } from '@/components/Screen';
-
-// 避免相对路径
-import { Screen } from '../../../components/Screen';
-```
-
-## 本地开发
-
-`coze-dev dev`：用来首次启动前后端服务，也可以用来重启前后端服务（该命令会先尝试杀掉占用端口的进程，再启动服务）

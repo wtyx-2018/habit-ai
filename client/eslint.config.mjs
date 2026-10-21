@@ -17,6 +17,7 @@ export default [
     ignores: [
       '**/dist/**',
       '**/node_modules/**',
+      'heroui/**',
       'api/**',           // 排除自动生成的 API 代码
       'src/api/**',       // 排除 src 下的自动生成 API
       '.expo/**',         // 排除 Expo 自动生成的文件

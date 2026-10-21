@@ -1,8 +1,24 @@
 import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { C } from '@/theme';
+
+function TabIcon({ icon, color, focused }: { icon: string; color: string; focused: boolean }) {
+  return (
+    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+      <FontAwesome6 name={icon} size={20} color={color} />
+      {/* 选中态：图标下短细指示线 */}
+      <View
+        style={{
+          width: 16, height: 3, borderRadius: 2,
+          backgroundColor: focused ? C.primary : 'transparent',
+          marginTop: 3,
+        }}
+      />
+    </View>
+  );
+}
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -12,7 +28,7 @@ export default function TabLayout() {
     borderTopWidth: 1,
     borderTopColor: C.border,
     paddingBottom: insets.bottom > 0 ? 6 : 4,
-    height: 58 + (insets.bottom > 0 ? insets.bottom : 0),
+    height: 60 + (insets.bottom > 0 ? insets.bottom : 0),
   };
 
   if (Platform.OS === 'web') {
@@ -25,43 +41,43 @@ export default function TabLayout() {
         headerShown: false,
         tabBarStyle,
         tabBarActiveTintColor: C.primary,
-        tabBarInactiveTintColor: C.muted,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarInactiveTintColor: C.placeholder,
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '500' },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: '今日',
-          tabBarIcon: ({ color }) => <FontAwesome6 name="sun" size={20} color={color} />,
+          tabBarIcon: ({ color, focused }) => <TabIcon icon="sun" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="goals"
         options={{
           title: '目标',
-          tabBarIcon: ({ color }) => <FontAwesome6 name="layer-group" size={20} color={color} />,
+          tabBarIcon: ({ color, focused }) => <TabIcon icon="layer-group" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="habits"
         options={{
           title: '习惯',
-          tabBarIcon: ({ color }) => <FontAwesome6 name="repeat" size={20} color={color} />,
+          tabBarIcon: ({ color, focused }) => <TabIcon icon="repeat" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="journal"
         options={{
           title: '复盘',
-          tabBarIcon: ({ color }) => <FontAwesome6 name="book" size={20} color={color} />,
+          tabBarIcon: ({ color, focused }) => <TabIcon icon="book" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: '我的',
-          tabBarIcon: ({ color }) => <FontAwesome6 name="user" size={20} color={color} />,
+          tabBarIcon: ({ color, focused }) => <TabIcon icon="user" color={color} focused={focused} />,
         }}
       />
     </Tabs>

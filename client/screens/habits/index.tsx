@@ -4,7 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
-import { Card, Btn, Field, ModalSheet, Empty, Tag } from '@/components/ui';
+import { Card, Btn, Field, ModalSheet, Empty, Tag, hexA } from '@/components/ui';
 import { C, RADIUS } from '@/theme';
 import { habitRepo, uid } from '@/lib/db';
 import type { Habit } from '@/lib/models';
@@ -43,7 +43,7 @@ export default function HabitsScreen() {
   const checkin = async (h: Habit, mode: 'full' | 'fallback') => {
     const today = todayStr();
     if (h.lastCheckedDate === today) {
-      Alert.alert('今天已打卡', '链条已维持，明天再来一样很棒。');
+      Alert.alert('今天已打卡', '链条已维持，明天再来也一样很棒。');
       return;
     }
     const yesterday = new Date();
@@ -75,48 +75,41 @@ export default function HabitsScreen() {
             <Text style={styles.sub}>别靠意志力，靠锚点与预置好的环境</Text>
           </View>
           <TouchableOpacity style={styles.addBtn} onPress={openAdd}>
-            <FontAwesome6 name="plus" size={16} color="#fff" />
+            <FontAwesome6 name="plus" size={15} color="#fff" />
           </TouchableOpacity>
         </View>
 
+        {/* 正向鼓励：总维持天数，放大 */}
         <Card style={styles.streakCard}>
-          <Text style={styles.streakNum}>{streakSum}</Text>
-          <Text style={styles.streakLabel}>累计维持天数 · 断链不追责</Text>
+          <Text style={styles.streakNum}>{streakSum}<Text style={styles.streakUnit}> 天</Text></Text>
+          <Text style={styles.streakLabel}>累计维持 · 断链不追责，接住每一个微小日常</Text>
         </Card>
 
         {activeHabits.length === 0 ? (
-          <Empty text="还没有习惯" hint="点右上角 ＋，先设计一个最小的触发锚点" />
+          <Empty text="还没有习惯" hint="先从设计一个最小的触发锚点开始" />
         ) : (
           activeHabits.map((h) => (
             <Card key={h.id} style={{ marginBottom: 12 }}>
-              <TouchableOpacity onPress={() => openEdit(h)} activeOpacity={0.75}>
+              {/* 上区：名称 + 连续天数 */}
+              <TouchableOpacity onPress={() => openEdit(h)} activeOpacity={0.7}>
                 <View style={styles.rowBetween}>
-                  <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Text style={styles.habitName} numberOfLines={1}>{h.name}</Text>
-                    <Tag text={`${h.streak} 天`} color={C.complete} />
-                  </View>
-                  <Text style={{ color: C.muted, fontSize: 12 }}>礼花罐 · 满 30 天</Text>
+                  <Text style={styles.habitName} numberOfLines={1}>{h.name}</Text>
+                  <Tag text={`维持 ${h.streak} 天`} color={C.complete} />
                 </View>
-                <View style={styles.eleRow}>
-                  <Ele k="锚点" v={h.anchor} icon="location-dot" color={C.primary} />
-                </View>
-                <View style={styles.eleRow}>
-                  <Ele k="最小行动" v={h.minimumAction} icon="person-running" color={C.info} />
-                </View>
-                <View style={styles.eleRow}>
-                  <Ele k="环境预置" v={h.environmentSetup} icon="house" color={C.accent} />
-                </View>
-                {h.fallbackVersion ? (
-                  <View style={styles.eleRow}>
-                    <Ele k="降级版" v={h.fallbackVersion} icon="shield-heart" color={C.warn} />
-                  </View>
-                ) : null}
               </TouchableOpacity>
+              {/* 下区：五要素 → pill 标签 */}
+              <View style={styles.pillWrap}>
+                <Pill icon="location-dot" color={C.primary} label="锚点" value={h.anchor} />
+                <Pill icon="person-running" color={C.info} label="最小行动" value={h.minimumAction} />
+                <Pill icon="house" color={C.quarter} label="环境预置" value={h.environmentSetup} />
+                {h.fallbackVersion ? <Pill icon="shield-heart" color={C.tipWarm} label="降级版" value={h.fallbackVersion} /> : null}
+              </View>
+              {/* 打卡：完整=主色填充；降级=描边弱化 */}
               <View style={styles.checkRow}>
-                <Btn small title="✓ 完整打卡" variant="soft" style={{ flex: 1 }} onPress={() => checkin(h, 'full')} />
-                <Btn small title="✓ 降级完成" variant="ghost" style={{ flex: 1 }} onPress={() => checkin(h, 'fallback')} />
+                <Btn small title="完整打卡" variant="primary" style={{ flex: 1 }} onPress={() => checkin(h, 'full')} />
+                <Btn small title="降级完成" variant="outline" style={{ flex: 1 }} onPress={() => checkin(h, 'fallback')} />
                 <TouchableOpacity onPress={() => toggleActive(h)} hitSlop={8} style={styles.pauseBtn}>
-                  <FontAwesome6 name="pause" size={16} color={C.muted} />
+                  <FontAwesome6 name="pause" size={15} color={C.muted} />
                 </TouchableOpacity>
               </View>
             </Card>
@@ -143,31 +136,29 @@ export default function HabitsScreen() {
   );
 }
 
-function Ele({ k, v, icon, color }: { k: string; v: string; icon: string; color: string }) {
+function Pill({ icon, color, label, value }: { icon: string; color: string; label: string; value: string }) {
   return (
-    <View style={styles.ele}>
-      <FontAwesome6 name={icon as any} size={12} color={color} />
-      <Text style={styles.eleKey}>{k}</Text>
-      <Text style={styles.eleVal} numberOfLines={2}>{v || '—'}</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: hexA(color, 0.09), borderRadius: RADIUS.pill, paddingHorizontal: 10, paddingVertical: 6, maxWidth: '100%' }}>
+      <FontAwesome6 name={icon as any} size={11} color={color} />
+      <Text style={{ color, fontSize: 11, fontWeight: '600' }}>{label}</Text>
+      <Text style={{ color: C.text, fontSize: 12, flexShrink: 1 }} numberOfLines={1}>{value || '—'}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   hero: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  greet: { fontSize: 22, fontWeight: '800', color: C.text },
+  greet: { fontSize: 22, fontWeight: '600', color: C.text },
   sub: { color: C.muted, fontSize: 13, marginTop: 2 },
-  addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center' },
-  streakCard: { alignItems: 'center', padding: 18, marginBottom: 16, backgroundColor: C.primarySoft, borderColor: C.primarySoft },
-  streakNum: { fontSize: 32, fontWeight: '900', color: C.primary },
-  streakLabel: { color: C.muted, fontSize: 12, marginTop: 2 },
-  habitName: { fontSize: 16, fontWeight: '700', color: C.text },
+  addBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center' },
+  streakCard: { alignItems: 'center', paddingVertical: 22, marginBottom: 16, backgroundColor: C.primarySoft },
+  streakNum: { fontSize: 42, fontWeight: '600', color: C.primary },
+  streakUnit: { fontSize: 18, fontWeight: '500', color: C.primary },
+  streakLabel: { color: C.muted, fontSize: 12, marginTop: 4 },
+  habitName: { fontSize: 16, fontWeight: '600', color: C.text, flex: 1 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  eleRow: { marginTop: 8 },
-  ele: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  eleKey: { color: C.muted, fontSize: 12, width: 64 },
-  eleVal: { color: C.text, fontSize: 13, flex: 1 },
-  checkRow: { flexDirection: 'row', gap: 8, marginTop: 14, alignItems: 'center' },
-  pauseBtn: { width: 40, height: 40, borderRadius: RADIUS.control, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+  pillWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  checkRow: { flexDirection: 'row', gap: 8, marginTop: 16, alignItems: 'center' },
+  pauseBtn: { width: 40, height: 40, borderRadius: RADIUS.control, borderWidth: 1, borderColor: C.divider, alignItems: 'center', justifyContent: 'center' },
   fLabel: { fontSize: 13, color: C.muted, fontWeight: '500' },
 });

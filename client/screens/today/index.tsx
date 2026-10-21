@@ -7,7 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { Card, SectionTitle, Tag, Empty } from '@/components/ui';
-import { C, RADIUS, DOMAIN_COLORS, DOMAIN_LABELS } from '@/theme';
+import { C, RADIUS, CARD_SHADOW, DOMAIN_COLORS, DOMAIN_LABELS } from '@/theme';
 import { taskRepo, slotRepo, stopRepo, goalRepo } from '@/lib/db';
 import type { Task, TimeSlot, StopRule, Goal } from '@/lib/models';
 import { todayStr, slotsForToday, greeting, weekdayCN, todayWeekday } from '@/lib/utils';
@@ -76,12 +76,12 @@ export default function TodayScreen() {
 
         {/* 焦虑急救入口 */}
         <TouchableOpacity style={styles.anxietyBanner} onPress={() => router.push('/anxiety')} activeOpacity={0.85}>
-          <View style={styles.anxietyIcon}><FontAwesome6 name="spa" size={16} color="#fff" /></View>
+          <View style={styles.anxietyIcon}><FontAwesome6 name="spa" size={16} color={C.tipWarm} /></View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.anxietyTitle}>感到焦虑、停不下来？</Text>
+            <Text style={styles.anxietyTitle}>此刻有些焦虑、停不下来？</Text>
             <Text style={styles.anxietySub}>试试 4 分钟呼吸与认知急救 · 自助工具，非医疗</Text>
           </View>
-          <FontAwesome6 name="chevron-right" size={14} color={C.accent} />
+          <FontAwesome6 name="chevron-right" size={14} color={C.tipWarm} />
         </TouchableOpacity>
       </View>
 
@@ -112,15 +112,18 @@ export default function TodayScreen() {
           right={<Text style={styles.slotHint}>共 {slots.length} 段</Text>}
         />
         {slots.length === 0 ? (
-          <Empty text="今天没有安排时段" hint="可在「我的 → 时间方案」调整" />
+          <Empty text="今晚没有安排时段" hint="留有空白也很好，去「我的 → 时间方案」随时调整" />
         ) : (
           <ScrollRow>
-            {slots.map((s) => (
-              <View key={s.id} style={[styles.slotCard, { borderLeftColor: slotColor(s.kind) }]}>
-                <Text style={styles.slotTime}>{s.start}–{s.end}</Text>
-                <Text style={[styles.slotKind, { color: slotColor(s.kind) }]}>{kindText(s.kind)}</Text>
-              </View>
-            ))}
+            {slots.map((s) => {
+              const sc = slotColor(s.kind);
+              return (
+                <View key={s.id} style={[styles.slotCard, { backgroundColor: hexA(sc, 0.08), borderColor: hexA(sc, 0.26) }]}>
+                  <Text style={styles.slotTime}>{s.start}–{s.end}</Text>
+                  <Text style={[styles.slotKind, { color: sc }]}>{kindText(s.kind)}</Text>
+                </View>
+              );
+            })}
           </ScrollRow>
         )}
       </View>
@@ -139,7 +142,7 @@ export default function TodayScreen() {
           }
         />
         {list.length === 0 ? (
-          <Empty text="今晚还没有小动作" hint="点右下角 ＋，输入一句话任务，AI 帮你拆成 5–30 分钟步骤" />
+          <Empty text="今晚还没有小动作" hint="也许，先只是把一件小事写下来，就够了" />
         ) : (
           list.map((t) => (
             <RowTask key={t.id} task={t} onClick={() => toggle(t.id)} />
@@ -156,10 +159,10 @@ export default function TodayScreen() {
         <SectionTitle title="今晚不为" right={
           <TouchableOpacity onPress={() => router.push('/stops')}><Text style={{ color: C.muted, fontSize: 12 }}>查看全部</Text></TouchableOpacity>
         } />
-        <Card style={{ backgroundColor: C.accentSoft, borderColor: hexA(C.accent, 0.3) }}>
+        <Card style={{ backgroundColor: C.bgPage }}>
           <View style={styles.rowBetween}>
             <Text style={styles.stopText}>“{rule.text}”</Text>
-            <Tag text={rule.category} color={C.accent} />
+            <Tag text={rule.category} color={C.muted} />
           </View>
           {rule.reason ? <Text style={styles.stopReason}>原因：{rule.reason}</Text> : null}
         </Card>
@@ -241,30 +244,30 @@ function computeStreak(tasks: Task[]): number {
 const styles = StyleSheet.create({
   hero: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, paddingBottom: 16 },
   date: { color: C.muted, fontSize: 13 },
-  greet: { fontSize: 20, fontWeight: '800', color: C.text, marginTop: 4 },
-  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
-  statCard: { flex: 1, paddingVertical: 12, paddingHorizontal: 8, alignItems: 'center', borderWidth: 1, borderColor: C.border },
-  statValue: { fontSize: 22, fontWeight: '800' },
+  greet: { fontSize: 20, fontWeight: '600', color: C.text, marginTop: 4 },
+  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  statCard: { flex: 1, paddingVertical: 12, paddingHorizontal: 6, alignItems: 'center' },
+  statValue: { fontSize: 20, fontWeight: '600' },
   statLabel: { fontSize: 12, color: C.muted, marginTop: 2 },
   anxietyBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: C.accentSoft, borderRadius: RADIUS.card,
-    padding: 14, marginBottom: 4, borderWidth: 1, borderColor: hexA(C.accent, 0.3),
+    backgroundColor: hexA(C.tipWarm, 0.1), borderRadius: RADIUS.card,
+    padding: 14, marginBottom: 4, borderWidth: 1, borderColor: hexA(C.tipWarm, 0.18),
   },
-  anxietyIcon: { width: 34, height: 34, borderRadius: 17, backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center' },
-  anxietyTitle: { color: C.text, fontWeight: '700', fontSize: 15 },
-  anxietySub: { color: hexA('#20261F', 0.6), fontSize: 12, marginTop: 2 },
+  anxietyIcon: { width: 34, height: 34, borderRadius: 17, backgroundColor: hexA(C.tipWarm, 0.16), alignItems: 'center', justifyContent: 'center' },
+  anxietyTitle: { color: C.text, fontWeight: '600', fontSize: 15 },
+  anxietySub: { color: C.muted, fontSize: 12, marginTop: 2 },
   slotHint: { color: C.muted, fontSize: 12 },
   slotCard: {
-    backgroundColor: C.surface, borderRadius: RADIUS.card, borderWidth: 1, borderColor: C.border,
-    borderLeftWidth: 4, paddingVertical: 12, paddingHorizontal: 14, minWidth: 128, flexGrow: 1, flexBasis: '30%',
+    backgroundColor: 'transparent', borderRadius: RADIUS.card, borderWidth: 1,
+    paddingVertical: 12, paddingHorizontal: 14, minWidth: 128, flexGrow: 1, flexBasis: '30%',
   },
-  slotTime: { color: C.text, fontWeight: '700', fontSize: 14 },
+  slotTime: { color: C.text, fontWeight: '600', fontSize: 14 },
   slotKind: { marginTop: 4, fontSize: 12, fontWeight: '600' },
   taskRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: C.surface, borderRadius: RADIUS.card, borderWidth: 1, borderColor: C.border,
-    padding: 14, marginBottom: 10,
+    backgroundColor: C.surface, borderRadius: RADIUS.card,
+    padding: 14, marginBottom: 10, ...CARD_SHADOW,
   },
   check: {
     width: 26, height: 26, borderRadius: 13, borderWidth: 2, borderColor: C.muted,

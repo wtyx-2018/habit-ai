@@ -3,9 +3,10 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, TextInput 
 import { useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { FontAwesome6 } from '@expo/vector-icons';
+import Svg, { Circle } from 'react-native-svg';
 import { Screen } from '@/components/Screen';
-import { Card, Btn, ModalSheet, Tag, Empty } from '@/components/ui';
-import { C, RADIUS } from '@/theme';
+import { Card, Btn, ModalSheet, Tag, Empty, hexA } from '@/components/ui';
+import { C, RADIUS, GOAL_LEVEL_COLORS } from '@/theme';
 import { goalRepo, taskRepo, uid } from '@/lib/db';
 import type { Goal, GoalLevel } from '@/lib/models';
 
@@ -18,8 +19,14 @@ const LEVELS: { key: GoalLevel; label: string }[] = [
 ];
 const LEVEL_INDEX: Record<GoalLevel, number> = { vision: 0, year: 1, quarter: 2, week: 3, day: 4 };
 const LEVEL_COLOR: Record<GoalLevel, string> = {
-  vision: C.primary, year: C.info, quarter: C.complete, week: C.accent, day: C.warn,
+  vision: GOAL_LEVEL_COLORS.vision,
+  year: GOAL_LEVEL_COLORS.year,
+  quarter: GOAL_LEVEL_COLORS.quarter,
+  week: GOAL_LEVEL_COLORS.week,
+  day: C.primary,
 };
+// 金字塔逐级缩进：愿景最宽，逐层收窄
+const LEVEL_INDENT: Record<GoalLevel, number> = { vision: 0, year: 16, quarter: 32, week: 48, day: 48 };
 
 export default function GoalsScreen() {
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -38,23 +45,13 @@ export default function GoalsScreen() {
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const alignment = tasks.length ? Math.round((tasks.filter((t) => t.goalId).length / tasks.length) * 100) : 0;
+  const doneCount = tasks.filter((t) => t.status === 'done').length;
 
   const openAdd = (lv: GoalLevel, parent: string | null) => {
-    setEditing(null);
-    setLevel(lv);
-    setParentId(parent);
-    setTitle('');
-    setProgress(0);
-    setModal(true);
+    setEditing(null); setLevel(lv); setParentId(parent); setTitle(''); setProgress(0); setModal(true);
   };
-
   const openEdit = (g: Goal) => {
-    setEditing(g);
-    setLevel(g.level);
-    setParentId(g.parentId);
-    setTitle(g.title);
-    setProgress(g.progress);
-    setModal(true);
+    setEditing(g); setLevel(g.level); setParentId(g.parentId); setTitle(g.title); setProgress(g.progress); setModal(true);
   };
 
   const save = async () => {
@@ -62,15 +59,11 @@ export default function GoalsScreen() {
     const now = Date.now();
     if (editing) {
       const next = goals.map((g) => (g.id === editing.id ? { ...g, title: title.trim(), progress, status: 'active' as const, updatedAt: now } : g));
-      await goalRepo.save(next);
-      setGoals(next);
+      await goalRepo.save(next); setGoals(next);
     } else {
-      const goal: Goal = {
-        id: uid(), parentId, level, title: title.trim(), progress, status: 'active', createdAt: now, updatedAt: now,
-      };
+      const goal: Goal = { id: uid(), parentId, level, title: title.trim(), progress, status: 'active', createdAt: now, updatedAt: now };
       const next = [...goals, goal];
-      await goalRepo.save(next);
-      setGoals(next);
+      await goalRepo.save(next); setGoals(next);
     }
     setModal(false);
   };
@@ -79,12 +72,10 @@ export default function GoalsScreen() {
     Alert.alert('归档目标', `确定归档"${g.title}"？归档后不再参与金字塔展示。`, [
       { text: '取消', style: 'cancel' },
       {
-        text: '归档',
-        style: 'destructive',
+        text: '归档', style: 'destructive',
         onPress: async () => {
           const next = goals.map((x) => (x.id === g.id ? { ...x, status: 'archived' as const } : x));
-          await goalRepo.save(next);
-          setGoals(next);
+          await goalRepo.save(next); setGoals(next);
         },
       },
     ]);
@@ -100,73 +91,52 @@ export default function GoalsScreen() {
         <View style={styles.hero}>
           <View>
             <Text style={styles.greet}>目标金字塔</Text>
-            <Text style={styles.sub}>从愿景落到今天的 5 分钟</Text>
+            <Text style={styles.sub}>从愿景，落到今天的一个 5 分钟</Text>
           </View>
           <TouchableOpacity style={styles.addBtn} onPress={() => openAdd('vision', null)}>
-            <FontAwesome6 name="plus" size={16} color="#fff" />
+            <FontAwesome6 name="plus" size={15} color="#fff" />
           </TouchableOpacity>
         </View>
 
-        <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
-          <Card style={styles.mini}>
-            <Text style={styles.miniVal}>{goals.length}</Text>
-            <Text style={styles.miniLabel}>目标</Text>
-          </Card>
-          <Card style={styles.mini}>
-            <Text style={[styles.miniVal, { color: C.accent }]}>{alignment}%</Text>
-            <Text style={styles.miniLabel}>方向对齐</Text>
-          </Card>
-          <Card style={styles.mini}>
-            <Text style={[styles.miniVal, { color: C.complete }]}>{tasks.filter((t) => t.status === 'done').length}</Text>
-            <Text style={styles.miniLabel}>已完成</Text>
-          </Card>
+        {/* 顶部统计：缩小弱化 */}
+        <View style={styles.miniRow}>
+          <MiniStat value={`${goals.length}`} label="目标" onPress={() => openAdd('vision', null)} />
+          <MiniStat value={`${alignment}%`} label="方向对齐" />
+          <MiniStat value={`${doneCount}`} label="已完成" />
         </View>
 
         {goals.length === 0 ? (
-          <Empty text="还没有目标" hint="点右上角 ＋，先写下你的愿景，再逐层落到年度、季度、周、今日" />
+          <Empty text="这里还很安静" hint="先写下你的愿景，再逐层落到年度、季度、周、今日" />
         ) : (
           LEVELS.map((lv) => {
             const items = goals.filter((g) => g.level === lv.key);
             if (items.length === 0) return null;
             const color = LEVEL_COLOR[lv.key];
+            const indent = LEVEL_INDENT[lv.key];
             return (
-              <View key={lv.key} style={{ marginTop: 16 }}>
+              <View key={lv.key} style={{ marginTop: 18, marginLeft: indent }}>
+                {/* 层级标签（pill） */}
                 <View style={styles.levelHeader}>
-                  <Text style={[styles.levelLabel, { color }]}>{lv.label}</Text>
+                  <View style={{ backgroundColor: hexA(color, 0.12), paddingHorizontal: 12, paddingVertical: 5, borderRadius: RADIUS.pill }}>
+                    <Text style={{ color, fontSize: 12, fontWeight: '600' }}>{lv.label}</Text>
+                  </View>
                   <TouchableOpacity onPress={() => openAdd(lv.key, null)} hitSlop={8}>
-                    <FontAwesome6 name="circle-plus" size={18} color={C.muted} />
+                    <FontAwesome6 name="plus" size={14} color={C.placeholder} />
                   </TouchableOpacity>
                 </View>
                 {items.map((g) => (
-                  <Card key={g.id} style={{ marginBottom: 10 }}>
-                    <TouchableOpacity onPress={() => openEdit(g)} activeOpacity={0.7}>
-                      <View style={styles.rowBetween}>
-                        <Text style={styles.goalTitle} numberOfLines={2}>{g.title}</Text>
-                        {g.progress >= 100 ? <Tag text="达成" color={C.complete} /> : null}
-                      </View>
-                      <View style={styles.progressTrack}>
-                        <View style={[styles.progressFill, { width: `${Math.min(100, Math.max(0, g.progress))}%`, backgroundColor: color }]} />
-                      </View>
-                      <View style={styles.rowBetween}>
-                        <Text style={styles.progressText}>{g.progress}% · 关联 {countTasks(g.id)} 个任务</Text>
-                        <View style={{ flexDirection: 'row', gap: 12 }}>
-                          {LEVEL_INDEX[lv.key] < 4 ? (
-                            <TouchableOpacity onPress={() => openAdd(LEVELS[LEVEL_INDEX[lv.key] + 1].key, g.id)} hitSlop={8}>
-                              <Text style={{ color: C.primary, fontSize: 12, fontWeight: '600' }}>＋下级</Text>
-                            </TouchableOpacity>
-                          ) : null}
-                          {childrenOf(g.id).length > 0 ? (
-                            <Text style={{ color: C.muted, fontSize: 12 }}>{childrenOf(g.id).length} 个下级</Text>
-                          ) : null}
-                          <TouchableOpacity onPress={() => archive(g)} hitSlop={8}>
-                            <Text style={{ color: C.warn, fontSize: 12 }}>归档</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  </Card>
+                  <GoalCard
+                    key={g.id}
+                    goal={g}
+                    color={color}
+                    taskCount={countTasks(g.id)}
+                    childCount={childrenOf(g.id).length}
+                    canAddChild={LEVEL_INDEX[lv.key] < 4}
+                    onOpen={() => openEdit(g)}
+                    onAddChild={() => openAdd(LEVELS[LEVEL_INDEX[lv.key] + 1].key, g.id)}
+                    onArchive={() => archive(g)}
+                  />
                 ))}
-                {childrenHint(items, goals)}
               </View>
             );
           })
@@ -194,7 +164,7 @@ export default function GoalsScreen() {
           value={title}
           onChangeText={setTitle}
           placeholder="写下一个清晰、克制的目标"
-          placeholderTextColor={C.muted}
+          placeholderTextColor={C.placeholder}
           style={styles.input}
           multiline
         />
@@ -218,41 +188,91 @@ export default function GoalsScreen() {
   );
 }
 
-function childrenHint(items: Goal[], all: Goal[]): React.ReactNode {
-  // 展示每个目标下的下级目标标题，帮助建立垂直联系
+function GoalCard({
+  goal, color, taskCount, childCount, canAddChild, onOpen, onAddChild, onArchive,
+}: {
+  goal: Goal; color: string; taskCount: number; childCount: number;
+  canAddChild: boolean; onOpen: () => void; onAddChild: () => void; onArchive: () => void;
+}) {
   return (
-    <View>
-      {items.map((g) => {
-        const kids = all.filter((x) => x.parentId === g.id);
-        if (!kids.length) return null;
-        return (
-          <View key={g.id} style={{ marginLeft: 18, paddingLeft: 10, borderLeftWidth: 2, borderLeftColor: C.border, marginBottom: 6 }}>
-            {kids.map((k) => <Text key={k.id} style={{ color: C.muted, fontSize: 12, paddingVertical: 2 }}>· {k.title}</Text>)}
+    <Card style={{ marginBottom: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+        <Ring pct={goal.progress} size={46} color={color} />
+        <TouchableOpacity style={{ flex: 1 }} onPress={onOpen} activeOpacity={0.7}>
+          <Text style={styles.goalTitle} numberOfLines={2}>{goal.title}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+            <Text style={styles.goalMeta}>关联 {taskCount} 个任务</Text>
+            {childCount > 0 ? <Text style={styles.goalMeta}>· {childCount} 个下级</Text> : null}
+            {goal.progress >= 100 ? <Tag text="达成" color={C.complete} /> : null}
           </View>
-        );
-      })}
+        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          {canAddChild ? (
+            <TouchableOpacity onPress={onAddChild} hitSlop={8}>
+              <FontAwesome6 name="plus" size={15} color={C.muted} />
+            </TouchableOpacity>
+          ) : null}
+          <TouchableOpacity onPress={onArchive} hitSlop={8}>
+            <FontAwesome6 name="box-archive" size={15} color={C.placeholder} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Card>
+  );
+}
+
+// 环形进度
+function Ring({ pct, size = 46, color }: { pct: number; size?: number; color: string }) {
+  const p = Math.min(100, Math.max(0, pct));
+  const stroke = 4;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const off = c * (1 - p / 100);
+  return (
+    <View style={{ width: size, height: size }}>
+      <Svg width={size} height={size}>
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke={hexA(color, 0.16)} strokeWidth={stroke} fill="none" />
+        <Circle
+          cx={size / 2} cy={size / 2} r={r} stroke={color}
+          strokeWidth={stroke} fill="none"
+          strokeDasharray={`${c} ${c}`} strokeDashoffset={off} strokeLinecap="round"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
+      <View style={styles.ringCenter}>
+        <Text style={{ color, fontSize: 11, fontWeight: '600' }}>{p}%</Text>
+      </View>
     </View>
+  );
+}
+
+function MiniStat({ value, label, onPress }: { value: string; label: string; onPress?: () => void }) {
+  return (
+    <TouchableOpacity disabled={!onPress} onPress={onPress} style={styles.mini}>
+      <Text style={styles.miniVal}>{value}</Text>
+      <Text style={styles.miniLabel}>{label}</Text>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   hero: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  greet: { fontSize: 22, fontWeight: '800', color: C.text },
+  greet: { fontSize: 22, fontWeight: '600', color: C.text },
   sub: { color: C.muted, fontSize: 13, marginTop: 2 },
-  addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center' },
-  mini: { flex: 1, alignItems: 'center', padding: 14 },
-  miniVal: { fontSize: 20, fontWeight: '800', color: C.primary },
-  miniLabel: { color: C.muted, fontSize: 12, marginTop: 2 },
+  addBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center' },
+  miniRow: { flexDirection: 'row', gap: 10, marginBottom: 6 },
+  mini: { flex: 1, alignItems: 'center', paddingVertical: 10 },
+  miniVal: { fontSize: 17, fontWeight: '600', color: C.primary },
+  miniLabel: { color: C.placeholder, fontSize: 11, marginTop: 2 },
   levelHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  levelLabel: { fontSize: 14, fontWeight: '800' },
-  goalTitle: { fontSize: 15, fontWeight: '600', color: C.text, flex: 1, marginRight: 8 },
-  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  goalTitle: { fontSize: 15, fontWeight: '600', color: C.text },
+  goalMeta: { color: C.muted, fontSize: 12 },
+  ringCenter: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  fLabel: { fontSize: 13, color: C.muted, marginBottom: 6, fontWeight: '500' },
+  levelChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: C.divider },
+  pctChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: C.divider },
   progressTrack: { height: 8, borderRadius: 4, backgroundColor: C.primarySoft, overflow: 'hidden', marginTop: 10, marginBottom: 8 },
   progressFill: { height: 8, borderRadius: 4 },
-  progressText: { color: C.muted, fontSize: 12 },
-  fLabel: { fontSize: 13, color: C.muted, marginBottom: 6, fontWeight: '500' },
-  levelChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: C.border },
-  pctChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: RADIUS.pill, borderWidth: 1, borderColor: C.border },
   input: {
     backgroundColor: C.primarySoft, borderRadius: RADIUS.control, paddingHorizontal: 14,
     paddingVertical: 12, fontSize: 15, color: C.text, minHeight: 70, textAlignVertical: 'top', marginBottom: 16,
